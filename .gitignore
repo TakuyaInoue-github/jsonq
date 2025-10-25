@@ -1,0 +1,37 @@
+# Byte-compiled / cache artifacts
+__pycache__/
+*.py[cod]
+*$py.class
+
+# Distribution / packaging outputs
+build/
+dist/
+*.egg-info/
+.eggs/
+pip-wheel-metadata/
+*.manifest
+*.spec
+
+# Virtual environments
+.env/
+.venv/
+env/
+venv/
+ENV/
+
+# Test / coverage reports
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+.coverage*
+htmlcov/
+
+# Tooling / IDE metadata
+.idea/
+.vscode/
+*.swp
+*.swo
+
+# OS generated files
+.DS_Store
+Thumbs.db
