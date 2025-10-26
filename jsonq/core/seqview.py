@@ -14,7 +14,7 @@ class SeqView:
     def _iter(self) -> Iterable[Any]:
         xs = self._v.as_list()
         for item in xs:
-            if self._v._mode is MissingMode.DROP and is_missing(item):
+            if self._v.mode is MissingMode.DROP and is_missing(item):
                 continue
             yield item
 
@@ -56,6 +56,10 @@ class SeqView:
     def unwrap(self) -> Any:
         return self._v.unwrap()
 
+    def to_value(self) -> JsonValue:
+        """Expose the transformed JsonValue for operator chaining."""
+        return self._v
+
 
 def _safe_pred(pred: Callable[[Any], bool], value: Any) -> bool:
     try:
@@ -72,4 +76,4 @@ def _safe_apply(fn: Callable[[Any], Any], value: Any) -> Any:
 
 
 def _wrap_seq(v: JsonValue, out: List[Any]) -> SeqView:
-    return SeqView(JsonValue(out, mode=v._mode, strict=v._strict))
+    return SeqView(v.replace(value=out))

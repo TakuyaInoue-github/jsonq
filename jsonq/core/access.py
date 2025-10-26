@@ -21,7 +21,7 @@ def get_item(v: JsonValue, key: Union[str, int, slice]) -> Any:
     """Vectorized safe item access based on current MissingMode."""
 
     val = v.unwrap()
-    mode = v._mode  # internal access is intentional
+    mode = v.mode  # internal access is intentional
 
     def handle_missing(exc: Exception | None = None):
         if mode is MissingMode.RAISE:
@@ -69,7 +69,7 @@ def apply_path(v: JsonValue, tokens: Sequence[Union[str, int]]) -> Any:
         if isinstance(cur, JsonValue):
             cur = get_item(cur, token)
         else:
-            cur = get_item(JsonValue(cur, mode=v._mode, strict=v._strict), token)
+            cur = get_item(v.replace(value=cur), token)
         if is_missing(cur):
             break
     return cur
