@@ -8,6 +8,7 @@
 - Vectorized operations (`q["key"]`, `q[0]`, `pluck`, `map`, `filter`, `sort_by`, `unique`, `flat`) automatically fan out over lists.
 - Path navigation via dotted/`[index]` expressions (`q.path("users[0].profile.email")`) plus `exists`, `coalesce`, and missing-value controls.
 - JSON diff/patch helpers for quick snapshots of top-level changes.
+- Operator modules (`jsonq.operators`) expose reusable building blocks so you can assemble pipelines beyond the built-in `Q` methods.
 
 ## Installation
 Requires Python 3.10+ and only uses the standard library.
@@ -39,7 +40,20 @@ active_names = (
 )  # ['Cara', 'Alice']
 
 profile_email = Q({"users": users}).path("users[10].profile.email").get("N/A")
+
+# Compose operators directly without Q methods
+from jsonq import operators as ops
+
+op = ops.pipe(
+    ops.access.path("users"),
+    ops.seq.filter_items(lambda u: u["active"]),
+    ops.seq.map_items(lambda u: u["name"]),
+)
+
+names = Q({"users": users}).apply(op).list()  # ['Alice', 'Cara']
 ```
+
+`ops.access`, `ops.seq`, and `ops.missing` work with `JsonValue` directly, so advanced callers can create reusable operator chains and feed them into `Q.apply()` (or into your own wrappers) for composition-heavy workflows.
 
 ## Working with Missing Values
 - `_Missing` is carried through the chain, letting you defer error handling.
@@ -60,7 +74,7 @@ patched = Q.patch({"a": 1}, ops)  # {"a": 2, "b": 3}
 ```
 
 ## Development
-- Run tests: `pytest`
+- Run tests: `python3 -m unittest discover -s test`
 - Lint/type-check hooks are not wired yet—see `doc/jsonq_仕様書（mvp）.md` for the full MVP spec and roadmap.
 
 ## Roadmap Snapshot

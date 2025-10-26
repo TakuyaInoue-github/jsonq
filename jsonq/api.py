@@ -5,11 +5,12 @@ from .core.value import JsonValue
 from .core.missing import MISSING, MissingMode
 from .core.path import tokenize_path
 from .core.access import apply_path
-from .core.seqview import SeqView
 from .ops.serialize import to_json as _to_json, pretty as _pretty
 from .ops.diff import diff as _diff, patch as _patch
-
-JsonOperator = Callable[[JsonValue], JsonValue]
+from .operators import JsonOperator
+from .operators import access as access_ops
+from .operators import seq as seq_ops
+from .operators import missing as missing_ops
 
 
 class Q:
@@ -27,14 +28,13 @@ class Q:
 
     # ----- access -----
     def __getitem__(self, key: Any) -> "Q":
-        return self.apply(lambda v, k=key: v.getitem(k))
+        return self.apply(access_ops.getitem(key))
 
     def pluck(self, key: str) -> "Q":
         return self[key]
 
     def path(self, expr: str) -> "Q":
-        toks = tokenize_path(expr)
-        return self.apply(lambda v, tokens=toks: v.replace(value=apply_path(v, tokens)))
+        return self.apply(access_ops.path(expr))
 
     def exists(self, expr: str) -> bool:
         toks = tokenize_path(expr)
@@ -43,22 +43,22 @@ class Q:
 
     # ----- transforms -----
     def map(self, fn: Callable[[Any], Any]) -> "Q":
-        return self.apply(lambda v, fn=fn: SeqView(v).map(fn).to_value())
+        return self.apply(seq_ops.map_items(fn))
 
     def filter(self, pred: Callable[[Any], bool]) -> "Q":
-        return self.apply(lambda v, pred=pred: SeqView(v).filter(pred).to_value())
+        return self.apply(seq_ops.filter_items(pred))
 
     def reject(self, pred: Callable[[Any], bool]) -> "Q":
-        return self.apply(lambda v, pred=pred: SeqView(v).reject(pred).to_value())
+        return self.apply(seq_ops.reject_items(pred))
 
     def sort_by(self, keyfn: Callable[[Any], Any]) -> "Q":
-        return self.apply(lambda v, keyfn=keyfn: SeqView(v).sort_by(keyfn).to_value())
+        return self.apply(seq_ops.sort_by(keyfn))
 
     def unique(self, keyfn: Optional[Callable[[Any], Any]] = None) -> "Q":
-        return self.apply(lambda v, keyfn=keyfn: SeqView(v).unique(keyfn).to_value())
+        return self.apply(seq_ops.unique(keyfn))
 
     def flat(self) -> "Q":
-        return self.apply(lambda v: SeqView(v).flat().to_value())
+        return self.apply(seq_ops.flat())
 
     # ----- extraction -----
     def get(self, default: Any = None) -> Any:
@@ -80,17 +80,17 @@ class Q:
 
     # ----- missing policy -----
     def keep_missing(self) -> "Q":
-        return self.apply(lambda v: v.with_mode(MissingMode.KEEP))
+        return self.apply(missing_ops.keep())
 
     def drop_missing(self) -> "Q":
-        return self.apply(lambda v: v.with_mode(MissingMode.DROP))
+        return self.apply(missing_ops.drop())
 
     def assert_present(self) -> "Q":
         self._v.assert_present()
         return self
 
     def fill_missing(self, value: Any) -> "Q":
-        return self.apply(lambda v, fill=value: v.fill_missing(fill))
+        return self.apply(missing_ops.fill(value))
 
     def coalesce(self, *paths: str, default: Any = None) -> Any:
         for p in paths:
