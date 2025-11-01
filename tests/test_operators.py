@@ -2,7 +2,7 @@ import unittest
 
 from jsonq.core.missing import MISSING, MissingMode
 from jsonq.core.value import JsonValue
-from jsonq.operators import access, missing, pipe, seq
+from jsonq.operators import access, missing, pipe, sequence
 
 
 class OperatorModuleTests(unittest.TestCase):
@@ -23,7 +23,7 @@ class OperatorModuleTests(unittest.TestCase):
         self.assertEqual(drop, [1])
 
     def test_seq_map_and_flat_compose(self) -> None:
-        combined = pipe(seq.map_items(lambda x: [x, x]), seq.flat())
+        combined = pipe(sequence.map_items(lambda x: [x, x]), sequence.flat())
         out = combined(self._json([1, 2, 3]))
         self.assertEqual(out.value, [1, 1, 2, 2, 3, 3])
 

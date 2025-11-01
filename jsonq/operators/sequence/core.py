@@ -2,9 +2,9 @@ from __future__ import annotations
 
 from typing import Any, Callable, Optional
 
-from ..core.seqview import SeqView
-from ..core.value import JsonValue
-from .base import JsonOperator
+from ...core.seqview import SeqView
+from ...core.value import JsonValue
+from ..base import JsonOperator
 
 
 def map_items(fn: Callable[[Any], Any]) -> JsonOperator:

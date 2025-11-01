@@ -5,12 +5,11 @@ from .core.value import JsonValue
 from .core.missing import MISSING, MissingMode
 from .core.path import tokenize_path
 from .core.access import apply_path
-from .ops.serialize import to_json as _to_json, pretty as _pretty
-from .ops.diff import diff as _diff, patch as _patch
 from .operators import JsonOperator
 from .operators import access as access_ops
-from .operators import seq as seq_ops
+from .operators import functional as functional_ops
 from .operators import missing as missing_ops
+from .operators import sequence as sequence_ops
 
 
 class Q:
@@ -43,22 +42,22 @@ class Q:
 
     # ----- transforms -----
     def map(self, fn: Callable[[Any], Any]) -> "Q":
-        return self.apply(seq_ops.map_items(fn))
+        return self.apply(sequence_ops.map_items(fn))
 
     def filter(self, pred: Callable[[Any], bool]) -> "Q":
-        return self.apply(seq_ops.filter_items(pred))
+        return self.apply(sequence_ops.filter_items(pred))
 
     def reject(self, pred: Callable[[Any], bool]) -> "Q":
-        return self.apply(seq_ops.reject_items(pred))
+        return self.apply(sequence_ops.reject_items(pred))
 
     def sort_by(self, keyfn: Callable[[Any], Any]) -> "Q":
-        return self.apply(seq_ops.sort_by(keyfn))
+        return self.apply(sequence_ops.sort_by(keyfn))
 
     def unique(self, keyfn: Optional[Callable[[Any], Any]] = None) -> "Q":
-        return self.apply(seq_ops.unique(keyfn))
+        return self.apply(sequence_ops.unique(keyfn))
 
     def flat(self) -> "Q":
-        return self.apply(seq_ops.flat())
+        return self.apply(sequence_ops.flat())
 
     # ----- extraction -----
     def get(self, default: Any = None) -> Any:
@@ -73,10 +72,10 @@ class Q:
 
     # ----- serialization -----
     def to_json(self, indent: Optional[int] = None) -> str:
-        return _to_json(self._v.unwrap(), indent=indent)
+        return functional_ops.to_json(self._v.unwrap(), indent=indent)
 
     def pretty(self, indent: int = 2) -> None:
-        _pretty(self._v.unwrap(), indent=indent)
+        functional_ops.pretty(self._v.unwrap(), indent=indent)
 
     # ----- missing policy -----
     def keep_missing(self) -> "Q":
@@ -102,11 +101,11 @@ class Q:
     # ----- diff/patch -----
     @staticmethod
     def diff(a: Any, b: Any):
-        return _diff(a, b)
+        return functional_ops.diff(a, b)
 
     @staticmethod
     def patch(a: Any, ops: Any):
-        return _patch(a, ops)
+        return functional_ops.patch(a, ops)
 
 
 class jx:

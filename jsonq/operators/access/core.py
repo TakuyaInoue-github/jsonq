@@ -2,10 +2,10 @@ from __future__ import annotations
 
 from typing import Any
 
-from ..core.access import apply_path, get_item
-from ..core.path import tokenize_path
-from ..core.value import JsonValue
-from .base import JsonOperator
+from ...core.access import apply_path, get_item
+from ...core.path import tokenize_path
+from ...core.value import JsonValue
+from ..base import JsonOperator
 
 
 def getitem(key: Any) -> JsonOperator:

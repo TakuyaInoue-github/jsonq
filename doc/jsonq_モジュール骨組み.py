@@ -9,15 +9,18 @@
 #     access.py            # get_item / apply_path (stateless)
 #     seqview.py           # SeqView (list-like ops)
 #     dictview.py          # DictView (dict-like ops)
-#   ops/
+#   operators/
 #     serialize.py         # to_json / pretty / ensure_serializable
 #     diff.py              # diff/patch (shallow MVP)
+#     access.py            # DTO-aware access operators
+#     seq.py               # DTO-aware sequence operators
+#     missing.py           # Missing-mode DTO operators
 
 # ---------------------------------------------------------------------
 # file: jsonq/__init__.py
 """jsonq public API.
 
-Expose Q facade and key utilities. Internals live under jsonq.core / jsonq.ops.
+Expose Q facade and key utilities. Internals live under jsonq.core / jsonq.operators.
 """
 from .api import Q, jx  # noqa: F401
 from .core.missing import MISSING, MissingMode  # noqa: F401
@@ -35,8 +38,8 @@ from .core.path import tokenize_path
 from .core.access import apply_path
 from .core.seqview import SeqView
 from .core.dictview import DictView
-from .ops.serialize import to_json as _to_json, pretty as _pretty
-from .ops.diff import diff as _diff, patch as _patch
+from .operators import serialize as serialize_ops
+from .operators import diff as diff_ops
 
 
 class Q:
@@ -96,10 +99,10 @@ class Q:
 
     # ----- serialization -----
     def to_json(self, indent: Optional[int] = None) -> str:
-        return _to_json(self._v.unwrap(), indent=indent)
+        return serialize_ops.to_json(self._v.unwrap(), indent=indent)
 
     def pretty(self, indent: int = 2) -> None:
-        _pretty(self._v.unwrap(), indent=indent)
+        serialize_ops.pretty(self._v.unwrap(), indent=indent)
 
     # ----- missing policy -----
     def keep_missing(self) -> "Q":
@@ -125,11 +128,11 @@ class Q:
     # ----- diff/patch -----
     @staticmethod
     def diff(a: Any, b: Any):
-        return _diff(a, b)
+        return diff_ops.diff(a, b)
 
     @staticmethod
     def patch(a: Any, ops: Any):
-        return _patch(a, ops)
+        return diff_ops.patch(a, ops)
 
 
 # Optional functional facade (pipeline-friendly)
@@ -446,11 +449,11 @@ class DictView:
 
 
 # ---------------------------------------------------------------------
-# file: jsonq/ops/serialize.py
+# file: jsonq/operators/functional/serialize.py
 from __future__ import annotations
-from typing import Any, Optional
 import json
-from ..core.missing import is_missing
+from typing import Any, Optional
+from ...core.missing import is_missing
 
 
 def ensure_serializable(x: Any) -> None:
@@ -471,34 +474,33 @@ def _contains_missing(x: Any) -> bool:
     if is_missing(x):
         return True
     if isinstance(x, list):
-        return any(_contains_missing(el) for el in x)
+        return any(_contains_missing(item) for item in x)
     if isinstance(x, dict):
-        return any(_contains_missing(v) for v in x.values())
+        return any(_contains_missing(value) for value in x.values())
     return False
 
 
 # ---------------------------------------------------------------------
-# file: jsonq/ops/diff.py
+# file: jsonq/operators/functional/diff.py
 from __future__ import annotations
-from typing import Any, List, Dict
+from typing import Any, Dict, List
 
 Op = Dict[str, Any]
 
 
 def diff(a: Any, b: Any) -> List[Op]:
-    """Shallow dict diff (MVP): add/remove/replace on top-level keys.
-    If inputs are not both dicts, emit single replace op when unequal.
-    """
+    """Shallow dict diff: add/remove/replace on top-level keys."""
+
     ops: List[Op] = []
     if isinstance(a, dict) and isinstance(b, dict):
         ak, bk = set(a.keys()), set(b.keys())
-        for k in sorted(ak - bk):
-            ops.append({"op": "remove", "path": f"/{k}"})
-        for k in sorted(bk - ak):
-            ops.append({"op": "add", "path": f"/{k}", "value": b[k]})
-        for k in sorted(ak & bk):
-            if a[k] != b[k]:
-                ops.append({"op": "replace", "path": f"/{k}", "value": b[k]})
+        for key in sorted(ak - bk):
+            ops.append({"op": "remove", "path": f"/{key}"})
+        for key in sorted(bk - ak):
+            ops.append({"op": "add", "path": f"/{key}", "value": b[key]})
+        for key in sorted(ak & bk):
+            if a[key] != b[key]:
+                ops.append({"op": "replace", "path": f"/{key}", "value": b[key]})
         return ops
     if a != b:
         ops.append({"op": "replace", "path": "/", "value": b})
@@ -507,20 +509,22 @@ def diff(a: Any, b: Any) -> List[Op]:
 
 def patch(a: Any, ops: List[Op]) -> Any:
     """Apply shallow ops to a copy; if non-dict and op targets root, replace."""
+
     import copy
-    x = copy.deepcopy(a)
+
+    current = copy.deepcopy(a)
     for op in ops:
         path = op["path"].lstrip("/")
         if path == "":
             if op["op"] in ("add", "replace"):
-                x = op.get("value")
+                current = op.get("value")
             elif op["op"] == "remove":
-                x = None
+                current = None
             continue
-        if not isinstance(x, dict):
+        if not isinstance(current, dict):
             continue
         if op["op"] == "remove":
-            x.pop(path, None)
+            current.pop(path, None)
         elif op["op"] in ("add", "replace"):
-            x[path] = op.get("value")
-    return x
+            current[path] = op.get("value")
+    return current
