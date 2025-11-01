@@ -1,8 +1,9 @@
 from __future__ import annotations
+
 import json
 from typing import Any, Optional
 
-from ..core.missing import is_missing
+from ...core.missing import is_missing
 
 
 def ensure_serializable(x: Any) -> None:
