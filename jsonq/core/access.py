@@ -54,9 +54,11 @@ def _getitem_dict(val: dict[str, JsonElement], key: str | int | slice, mode: Mis
 
 def get_item(v: JsonValue, key: str | int | slice) -> JsonElement | list[JsonElement]:
     """Vectorized safe item access based on current MissingMode."""
+    # TODO: implement coercion rules
     raise NotImplementedError
 
 
 def apply_path(v: JsonValue, tokens: tuple[str | int, ...]) -> JsonElement:
     """Apply a tokenized path expression to a JsonValue."""
+    # TODO: implement coercion rules
     raise NotImplementedError

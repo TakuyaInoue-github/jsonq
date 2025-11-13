@@ -41,6 +41,8 @@ ignore = [
     "TRY003", # Long exception messages allowed
     "EM101",  # Exception string literals allowed
     "COM812", # Trailing comma missing (conflicts with formatter)
+
+    "FIX002"
 ]
 
 unfixable = [

@@ -45,6 +45,7 @@ def diff(a: JsonElement, b: JsonElement) -> list[DiffOp]:
 
 def unwrap(json_elem: JsonElement) -> JsonValue:
     """Wrap a JSON element with a diff patch."""
+    # TODO: implement coercion rules
     raise NotImplementedError
 
 

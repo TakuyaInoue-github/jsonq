@@ -16,6 +16,7 @@ if TYPE_CHECKING:
 
 def unwrap(json_elem: JsonElement) -> JsonValue:
     """Wrap a JSON element with a diff patch."""
+    # TODO: implement coercion rules
     raise NotImplementedError
 
 
@@ -54,12 +55,14 @@ class JsonValue:
         return is_missing(x)
 
     def __get_item(self, key: str | int | slice) -> JsonValue | MissingType:
+        # TODO: implement coercion rules
         raise NotImplementedError
 
     def get(self, default: JsonElement | _DefaultT | None = None) -> JsonElement | _DefaultT | None:
         return self.value if not is_missing(self.value) else default
 
     def as_list(self) -> list[JsonElement]:
+        # TODO: implement coercion rules
         raise NotImplementedError
 
     def getitem(self, key: str | int | slice) -> JsonValue | list[JsonValue]:

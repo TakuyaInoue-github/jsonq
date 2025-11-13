@@ -37,6 +37,7 @@ class SeqView:
         return _wrap_seq(self._v, out)
 
     def sort_by(self, keyfn: Callable[[JsonElement], object]) -> SeqView:
+        # TODO: implement coercion rules
         raise NotImplementedError
 
     def unique(self, keyfn: Callable[[JsonElement], object] | None = None) -> SeqView:
