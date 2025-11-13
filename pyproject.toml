@@ -9,3 +9,47 @@ dependencies = []
 [build-system]
 requires = ["setuptools>=67"]
 build-backend = "setuptools.build_meta"
+
+[dependency-groups]
+dev = [
+    "pre-commit>=4.3.0",
+    "pyright>=1.1.407",
+    "pytest>=8.4.2",
+    "pytest-cov>=7.0.0",
+    "ruff>=0.14.3",
+]
+
+[tool.ruff]
+line-length = 200
+
+[tool.ruff.lint]
+select = ["ALL"]
+
+ignore = [
+    # Documentation
+    "D1",     # Missing docstrings
+    "D203",   # One blank line before class
+    "D213",   # Multi-line summary second line
+    "D400",   # First line should end with period
+    "D415",   # First line should end with punctuation
+
+    # Development
+    "TD",     # todo tags allowed
+    "T201",   # print() allowed for debugging
+
+    # Exception handling
+    "TRY003", # Long exception messages allowed
+    "EM101",  # Exception string literals allowed
+    "COM812", # Trailing comma missing (conflicts with formatter)
+]
+
+unfixable = [
+]
+
+[tool.ruff.lint.per-file-ignores]
+"tests/*" = [
+    "S101",    # assert allowed in tests
+    "PLR2004", # Magic values allowed in tests
+    "ANN",     # Type annotations optional in tests
+    "D",       # Docstrings optional in tests
+]

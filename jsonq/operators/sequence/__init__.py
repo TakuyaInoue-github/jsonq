@@ -1,6 +1,6 @@
 from .core import (
-    flat,
     filter_items,
+    flat,
     map_items,
     reject_items,
     sort_by,
@@ -8,10 +8,10 @@ from .core import (
 )
 
 __all__ = [
-    "map_items",
     "filter_items",
+    "flat",
+    "map_items",
     "reject_items",
     "sort_by",
     "unique",
-    "flat",
 ]

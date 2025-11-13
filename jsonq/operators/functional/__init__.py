@@ -1,10 +1,11 @@
-from .diff import diff, patch
+from .diff import DiffOp, diff, patch
 from .serialize import ensure_serializable, pretty, to_json
 
 __all__ = [
+    "DiffOp",
     "diff",
-    "patch",
     "ensure_serializable",
-    "to_json",
+    "patch",
     "pretty",
+    "to_json",
 ]

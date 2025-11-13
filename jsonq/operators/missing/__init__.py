@@ -1,3 +1,3 @@
 from .core import drop, fill, keep
 
-__all__ = ["keep", "drop", "fill"]
+__all__ = ["drop", "fill", "keep"]

@@ -1,26 +1,24 @@
-from __future__ import annotations
-
 import json
-from typing import Any, Optional
 
-from ...core.missing import is_missing
+from jsonq.core.core_types import JsonElement
+from jsonq.core.missing import is_missing
 
 
-def ensure_serializable(x: Any) -> None:
+def ensure_serializable(x: JsonElement) -> None:
     if _contains_missing(x):
         raise ValueError("Missing values present; fill or drop before serialization")
 
 
-def to_json(x: Any, *, indent: Optional[int] = None) -> str:
+def to_json(x: JsonElement, *, indent: int | None = None) -> str:
     ensure_serializable(x)
     return json.dumps(x, ensure_ascii=False, indent=indent)
 
 
-def pretty(x: Any, *, indent: int = 2) -> None:
+def pretty(x: JsonElement, *, indent: int = 2) -> None:
     print(to_json(x, indent=indent))
 
 
-def _contains_missing(x: Any) -> bool:
+def _contains_missing(x: JsonElement) -> bool:
     if is_missing(x):
         return True
     if isinstance(x, list):

@@ -1,6 +1,5 @@
-from __future__ import annotations
 from enum import Enum
-from typing import Any
+from typing import TypeGuard
 
 
 class MissingMode(str, Enum):
@@ -25,6 +24,10 @@ class _MissingType:
 
 MISSING = _MissingType()
 
+MissingType = _MissingType
 
-def is_missing(x: Any) -> bool:
-    return x is MISSING
+__all__ = ["MISSING", "MissingMode", "MissingType", "is_missing"]
+
+
+def is_missing(x: object) -> TypeGuard[_MissingType]:
+    return isinstance(x, _MissingType)

@@ -1,10 +1,7 @@
-from __future__ import annotations
-
-from typing import Any
-
-from ...core.missing import MissingMode
-from ...core.value import JsonValue
-from ..base import JsonOperator
+from jsonq.core.core_types import JsonElement
+from jsonq.core.missing import MissingMode
+from jsonq.core.value import JsonValue
+from jsonq.operators.base import JsonOperator
 
 
 def keep() -> JsonOperator:
@@ -21,7 +18,7 @@ def drop() -> JsonOperator:
     return op
 
 
-def fill(value_to_use: Any) -> JsonOperator:
+def fill(value_to_use: JsonElement) -> JsonOperator:
     def op(value: JsonValue) -> JsonValue:
         return value.fill_missing(value_to_use)
 
