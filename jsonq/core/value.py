@@ -3,21 +3,22 @@ from __future__ import annotations
 from dataclasses import dataclass
 from typing import TYPE_CHECKING, Final, TypeVar, cast
 
+from .coerce import coerce_json_element
 from .missing import MissingMode, MissingType, is_missing
 
 _DefaultT = TypeVar("_DefaultT")
 _SAME_SENTINEL: Final = object()
 
 if TYPE_CHECKING:
-    from typing import Final
-
     from .core_types import JsonElement
 
 
-def unwrap(json_elem: JsonElement) -> JsonValue:
-    """Wrap a JSON element with a diff patch."""
-    # TODO: implement coercion rules
-    raise NotImplementedError
+def coerce_json_value(json_elem: JsonElement) -> JsonValue:
+    """Wrap a JSON element with JsonValue, ensuring nested items are valid JSON."""
+    if isinstance(json_elem, JsonValue):
+        return json_elem
+    coerced = coerce_json_element(json_elem)
+    return JsonValue(coerced, mode=MissingMode.DROP, strict=False)
 
 
 @dataclass(frozen=True, slots=True)
