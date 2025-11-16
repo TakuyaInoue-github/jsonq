@@ -3,10 +3,12 @@ from __future__ import annotations
 import copy
 from typing import TYPE_CHECKING, Literal, TypedDict, cast
 
+from jsonq.core.coerce import coerce_json_element
+
 if TYPE_CHECKING:
     from collections.abc import Sequence
 
-    from jsonq.core.core_types import JsonElement, JsonValue
+    from jsonq.core.core_types import JsonData, JsonElement
 
 
 class RemoveOp(TypedDict):
@@ -17,13 +19,13 @@ class RemoveOp(TypedDict):
 class AddOp(TypedDict):
     op: Literal["add"]
     path: str
-    value: JsonElement
+    value: JsonData
 
 
 class ReplaceOp(TypedDict):
     op: Literal["replace"]
     path: str
-    value: JsonElement
+    value: JsonData
 
 
 DiffOp = RemoveOp | AddOp | ReplaceOp
@@ -39,14 +41,8 @@ def diff(a: JsonElement, b: JsonElement) -> list[DiffOp]:
         ops.extend({"op": "replace", "path": f"/{key}", "value": b[key]} for key in sorted(ak & bk) if a[key] != b[key])
         return ops
     if a != b:
-        ops.append({"op": "replace", "path": "/", "value": b})
+        ops.append({"op": "replace", "path": "/", "value": cast("JsonData", b)})
     return ops
-
-
-def unwrap(json_elem: JsonElement) -> JsonValue:
-    """Wrap a JSON element with a diff patch."""
-    # TODO: implement coercion rules
-    raise NotImplementedError
 
 
 def patch(a: JsonElement, ops: Sequence[DiffOp]) -> JsonElement:
@@ -56,7 +52,8 @@ def patch(a: JsonElement, ops: Sequence[DiffOp]) -> JsonElement:
         path = op["path"].lstrip("/")
         if path == "":
             if op["op"] in ("add", "replace"):
-                current = op.get("value")
+                op_with_value = cast(AddOp | ReplaceOp, op)
+                current = cast("JsonElement", op_with_value["value"])
             elif op["op"] == "remove":
                 current = None
             continue
@@ -65,5 +62,6 @@ def patch(a: JsonElement, ops: Sequence[DiffOp]) -> JsonElement:
         if op["op"] == "remove":
             current.pop(path, None)
         elif op["op"] in ("add", "replace"):
-            current[path] = unwrap(op.get("value"))
+            op_with_value = cast(AddOp | ReplaceOp, op)
+            current[path] = cast("JsonData", coerce_json_element(op_with_value["value"]))
     return current
