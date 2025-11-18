@@ -65,13 +65,13 @@ class JsonValue:
     def as_list(self) -> list[JsonElement]:
         value = self.value
         if isinstance(value, list):
-            items = list(value)
+            items = [coerce_json_element(v) for v in list(value)]
         elif is_missing(value):
-            items = [] if self.mode is MissingMode.DROP else [value]
+            items = [] if self.mode is MissingMode.DROP else [coerce_json_element(value)]
         else:
-            items = [value]
+            items = [coerce_json_element(value)]
         if self.mode is MissingMode.DROP:
-            items = [item for item in items if not is_missing(item)]
+            items = [coerce_json_element(item) for item in items if not is_missing(item)]
         return items
 
     def getitem(self, key: str | int | slice) -> JsonValue:

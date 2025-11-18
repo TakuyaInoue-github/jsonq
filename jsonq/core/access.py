@@ -1,12 +1,13 @@
 from __future__ import annotations
 
-from collections.abc import Iterable
-from typing import TYPE_CHECKING
+from typing import TYPE_CHECKING, cast
 
-from .core_types import JsonElement
 from .missing import MISSING, MissingMode, is_missing
 
 if TYPE_CHECKING:
+    from collections.abc import Iterable
+
+    from .core_types import JsonElement
     from .value import JsonValue
 
 
@@ -97,9 +98,12 @@ def _get_by_slice(
         return _handle_missing(mode, exc=TypeError("slice access requires a list"))
     try:
         sliced = value[key]
+
+        if not drop_missing:
+            return sliced
+        return [item for item in sliced if not is_missing(item)]
     except ValueError as exc:
         return _handle_missing(mode, exc=exc)
-    return _drop_missing(sliced, drop_missing)
 
 
 def _vectorized_from_list(
@@ -110,10 +114,4 @@ def _vectorized_from_list(
     drop_missing: bool,
 ) -> JsonElement:
     items = [_get_item_from_element(item, key, mode=mode, drop_missing=drop_missing) for item in seq]
-    return _flatten_once(items, drop_missing=drop_missing)
-
-
-def _drop_missing(seq: list[JsonElement], drop_missing: bool) -> list[JsonElement]:
-    if not drop_missing:
-        return list(seq)
-    return [item for item in seq if not is_missing(item)]
+    return cast("JsonElement", _flatten_once(items, drop_missing=drop_missing))

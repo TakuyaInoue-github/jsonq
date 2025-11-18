@@ -1,8 +1,11 @@
 from __future__ import annotations
 
+from typing import cast
+
 import pytest
 
 from jsonq.core.access import apply_path, get_item
+from jsonq.core.core_types import JsonElement
 from jsonq.core.missing import MISSING, MissingMode
 from jsonq.core.value import JsonValue
 
@@ -34,6 +37,7 @@ def test_vectorized_lookup_keeps_missing_when_requested() -> None:
         mode=MissingMode.KEEP,
     )
     result = get_item(value, "name")
+    assert isinstance(result, list)
     assert result[0] == "alice"
     assert JsonValue.is_missing(result[1])
 
@@ -80,5 +84,5 @@ def test_missing_to_list() -> None:
 
 
 def test_drop_missing_inside_list() -> None:
-    value = JsonValue([1, MISSING, 2], mode=MissingMode.DROP)
+    value = JsonValue(cast(JsonElement, [1, MISSING, 2]), mode=MissingMode.DROP)
     assert value.as_list() == [1, 2]
