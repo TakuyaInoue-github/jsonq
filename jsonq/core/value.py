@@ -3,6 +3,7 @@ from __future__ import annotations
 from dataclasses import dataclass
 from typing import TYPE_CHECKING, Final, TypeVar, cast
 
+from .access import get_item as _core_get_item
 from .coerce import coerce_json_element
 from .missing import MissingMode, MissingType, is_missing
 
@@ -55,20 +56,27 @@ class JsonValue:
     def is_missing(x: object) -> bool:
         return is_missing(x)
 
-    def __get_item(self, key: str | int | slice) -> JsonValue | MissingType:
-        # TODO: implement coercion rules
-        raise NotImplementedError
+    def __get_item(self, key: str | int | slice) -> JsonElement:
+        return _core_get_item(self, key)
 
     def get(self, default: JsonElement | _DefaultT | None = None) -> JsonElement | _DefaultT | None:
         return self.value if not is_missing(self.value) else default
 
     def as_list(self) -> list[JsonElement]:
-        # TODO: implement coercion rules
-        raise NotImplementedError
+        value = self.value
+        if isinstance(value, list):
+            items = [coerce_json_element(v) for v in list(value)]
+        elif is_missing(value):
+            items = [] if self.mode is MissingMode.DROP else [coerce_json_element(value)]
+        else:
+            items = [coerce_json_element(value)]
+        if self.mode is MissingMode.DROP:
+            items = [coerce_json_element(item) for item in items if not is_missing(item)]
+        return items
 
-    def getitem(self, key: str | int | slice) -> JsonValue | list[JsonValue]:
+    def getitem(self, key: str | int | slice) -> JsonValue:
         value = self.__get_item(key)
-        return [self.replace(value=value)]
+        return self.replace(value=value)
 
     def assert_present(self) -> None:
         if is_missing(self.value):
