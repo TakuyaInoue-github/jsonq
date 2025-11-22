@@ -78,7 +78,7 @@ def _get_by_key(value: JsonElement, key: str, *, mode: MissingMode, drop_missing
 
 def _get_by_index(value: JsonElement, key: int, *, mode: MissingMode) -> JsonElement:
     if not isinstance(value, list):
-        return _handle_missing(mode, exc=IndexError(key))
+        return _handle_missing(mode, exc=TypeError("index access requires a list"))
     if not value:
         return _handle_missing(mode, exc=IndexError(key))
     try:
