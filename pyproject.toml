@@ -55,3 +55,7 @@ unfixable = [
     "ANN",     # Type annotations optional in tests
     "D",       # Docstrings optional in tests
 ]
+
+"jsonq/core/*" = [
+    "PLR0911" # too many return statements     
+]
