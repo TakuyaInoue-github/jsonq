@@ -8,7 +8,7 @@ from jsonq.core.value import JsonValue
 
 
 def _make_seq(data: list[dict[str, Any]], *, mode: MissingMode = MissingMode.DROP) -> SeqView:
-    return SeqView(JsonValue(data, mode=mode))
+    return SeqView(JsonValue(cast("JSONElement" , data), mode=mode))
 
 
 def test_sort_by_orders_values_stably() -> None:

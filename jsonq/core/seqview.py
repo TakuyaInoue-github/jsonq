@@ -48,7 +48,7 @@ class SeqView:
         for idx, item in enumerate(self._iter()):
             try:
                 candidate = _build_sort_candidate(item, idx, keyfn, drop_missing=drop_missing)
-            except InvalidSortException:
+            except InvalidSortError:
                 continue
             candidates.append(candidate)
 
@@ -101,7 +101,7 @@ def _wrap_seq(v: JsonValue, out: list[JsonElement]) -> SeqView:
     return SeqView(v.replace(value=out))
 
 
-class InvalidSortException(Exception):
+class InvalidSortError(Exception):
     """Raised when a sort key cannot be derived."""
 
 
@@ -110,16 +110,6 @@ class SortCandidate:
     key: tuple[SortType, object]
     index: int
     value: JsonElement
-
-
-class SortType(IntEnum):
-    MISSING = 0
-    NONE = 1
-    BOOL = 2
-    NUMBER = 3
-    STRING = 4
-    ARRAY = 5
-    OBJECT = 6
 
 
 class SortType(IntEnum):
@@ -148,7 +138,7 @@ def _build_sort_key(
         return (SortType.NONE, 0)
     if isinstance(value, bool):
         return (SortType.BOOL, int(value))
-    if isinstance(value, (int, float)):
+    if isinstance(value, int | float):
         return (SortType.NUMBER, value)
     if isinstance(value, str):
         return (SortType.STRING, value)
@@ -173,24 +163,24 @@ def _build_sort_candidate(
     try:
         raw_key = keyfn(item)
     except Exception as exc:
-        raise InvalidSortException from exc
+        raise InvalidSortError from exc
 
     if is_missing(raw_key):
         if drop_missing:
-            raise InvalidSortException
+            raise InvalidSortError
         key_value = raw_key
     else:
         try:
             key_value = coerce_json_element(raw_key)
         except TypeError as exc:
-            raise InvalidSortException from exc
+            raise InvalidSortError from exc
 
     if is_missing(key_value) and drop_missing:
-        raise InvalidSortException
+        raise InvalidSortError
 
     try:
         sort_key = _build_sort_key(key_value)
     except TypeError as exc:
-        raise InvalidSortException from exc
+        raise InvalidSortError from exc
 
     return SortCandidate(sort_key, idx, item)
