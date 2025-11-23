@@ -1,14 +1,23 @@
 from __future__ import annotations
 
-from typing import Any
+from typing import TYPE_CHECKING
 
-from jsonq.core.missing import MISSING, MissingMode
+from jsonq.core.access import get_item
+from jsonq.core.coerce import coerce_json_element
+from jsonq.core.missing import MissingMode
 from jsonq.core.seqview import _SORT_KEY_MAX_DEPTH, SeqView
 from jsonq.core.value import JsonValue
 
+if TYPE_CHECKING:
+    from jsonq.core.core_types import JsonElement
 
-def _make_seq(data: list[dict[str, Any]], *, mode: MissingMode = MissingMode.DROP) -> SeqView:
-    return SeqView(JsonValue(cast("JSONElement" , data), mode=mode))
+
+def _make_seq(data: JsonElement, *, mode: MissingMode = MissingMode.DROP) -> SeqView:
+    return SeqView(JsonValue(coerce_json_element(data), mode=mode))
+
+
+def _get(item: JsonElement, key: str, *, mode: MissingMode) -> JsonElement:
+    return get_item(JsonValue(item, mode=mode), key)
 
 
 def test_sort_by_orders_values_stably() -> None:
@@ -21,9 +30,15 @@ def test_sort_by_orders_values_stably() -> None:
         ]
     )
 
-    out = seq.sort_by(lambda item: item["score"]).unwrap()
+    out = seq.sort_by(lambda item: _get(item, "score", mode=MissingMode.DROP)).unwrap()
 
-    assert [item["id"] for item in out] == ["second", "fourth", "third", "first"]
+    assert isinstance(out, list)
+    assert [_get(item, "id", mode=MissingMode.DROP) for item in out] == [
+        "second",
+        "fourth",
+        "third",
+        "first",
+    ]
 
 
 def test_sort_by_drops_missing_keys_when_in_drop_mode() -> None:
@@ -35,9 +50,10 @@ def test_sort_by_drops_missing_keys_when_in_drop_mode() -> None:
         ]
     )
 
-    out = seq.sort_by(lambda item: item.get("score", MISSING)).unwrap()
+    out = seq.sort_by(lambda item: _get(item, "score", mode=MissingMode.DROP)).unwrap()
 
-    assert [item["id"] for item in out] == ["low", "has-key"]
+    assert isinstance(out, list)
+    assert [_get(item, "id", mode=MissingMode.DROP) for item in out] == ["low", "has-key"]
 
 
 def test_sort_by_keeps_missing_keys_in_keep_mode() -> None:
@@ -50,13 +66,18 @@ def test_sort_by_keeps_missing_keys_in_keep_mode() -> None:
         mode=MissingMode.KEEP,
     )
 
-    out = seq.sort_by(lambda item: item.get("score", MISSING)).unwrap()
+    out = seq.sort_by(lambda item: _get(item, "score", mode=MissingMode.KEEP)).unwrap()
 
-    assert [item["id"] for item in out] == ["missing-key", "low", "high"]
+    assert isinstance(out, list)
+    assert [_get(item, "id", mode=MissingMode.KEEP) for item in out] == [
+        "missing-key",
+        "low",
+        "high",
+    ]
 
 
-def _nested_list(depth: int) -> list[Any]:
-    payload: Any = 0
+def _nested_list(depth: int) -> JsonElement:
+    payload: JsonElement = 0
     for _ in range(depth):
         payload = [payload]
     return payload
@@ -65,12 +86,15 @@ def _nested_list(depth: int) -> list[Any]:
 def test_sort_by_skips_elements_when_sort_key_depth_limit_exceeded() -> None:
     deep_value = _nested_list(_SORT_KEY_MAX_DEPTH + 1)
     seq = _make_seq(
-        [
-            {"id": "too-deep", "score": deep_value},
-            {"id": "shallow", "score": 0},
-        ]
+        coerce_json_element(
+            [
+                {"id": "too-deep", "score": deep_value},
+                {"id": "shallow", "score": 0},
+            ]
+        )
     )
 
-    out = seq.sort_by(lambda item: item["score"]).unwrap()
+    out = seq.sort_by(lambda item: _get(item, "score", mode=MissingMode.DROP)).unwrap()
+    assert isinstance(out, list)
 
-    assert [item["id"] for item in out] == ["shallow"]
+    assert [_get(item, "id", mode=MissingMode.DROP) for item in out] == ["shallow"]
