@@ -11,14 +11,14 @@
 - Operator modules (`jsonq.operators`) expose reusable building blocks so you can assemble pipelines beyond the built-in `Q` methods.
 
 ## Installation
-Requires Python 3.10+ and only uses the standard library.
+Requires Python 3.10+. The project is managed with [`uv`](https://docs.astral.sh/uv/) so you get reproducible installs and a cached virtual environment.
 
 ```bash
-python -m venv .venv
+uv sync          # resolve & install into .venv/
 source .venv/bin/activate
-pip install --upgrade pip
-pip install -e .
 ```
+
+Need a new dependency? Use `uv add <package>` (or `uv add --dev <package>` for development-only tooling); the lock file stays up to date automatically.
 
 ## Quick Start
 ```python
@@ -46,14 +46,14 @@ from jsonq import operators as ops
 
 op = ops.pipe(
     ops.access.path("users"),
-    ops.seq.filter_items(lambda u: u["active"]),
-    ops.seq.map_items(lambda u: u["name"]),
+    ops.sequence.filter_items(lambda u: u["active"]),
+    ops.sequence.map_items(lambda u: u["name"]),
 )
 
 names = Q({"users": users}).apply(op).list()  # ['Alice', 'Cara']
 ```
 
-`ops.access`, `ops.seq`, and `ops.missing` work with `JsonValue` directly, so advanced callers can create reusable operator chains and feed them into `Q.apply()` (or into your own wrappers) for composition-heavy workflows.
+`ops.access`, `ops.sequence`, and `ops.missing` work with `JsonValue` directly, so advanced callers can create reusable operator chains and feed them into `Q.apply()` (or into your own wrappers) for composition-heavy workflows. Diff/patchなど生データ向けのユーティリティは `ops.functional` 配下にまとまっています。
 
 ## Working with Missing Values
 - `_Missing` is carried through the chain, letting you defer error handling.
@@ -74,7 +74,7 @@ patched = Q.patch({"a": 1}, ops)  # {"a": 2, "b": 3}
 ```
 
 ## Development
-- Run tests: `python3 -m unittest discover -s test`
+- Run tests: `uv run python -m unittest discover -s tests`
 - Lint/type-check hooks are not wired yet—see `doc/jsonq_仕様書（mvp）.md` for the full MVP spec and roadmap.
 
 ## Roadmap Snapshot

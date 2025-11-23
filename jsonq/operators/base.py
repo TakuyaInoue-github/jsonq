@@ -1,13 +1,10 @@
-from __future__ import annotations
+from typing import Protocol
 
-from typing import Callable, Protocol
-
-from ..core.value import JsonValue
+from jsonq.core.value import JsonValue
 
 
 class JsonOperator(Protocol):
-    def __call__(self, value: JsonValue) -> JsonValue:
-        ...
+    def __call__(self, value: JsonValue) -> JsonValue: ...
 
 
 def pipe(*ops: JsonOperator) -> JsonOperator:

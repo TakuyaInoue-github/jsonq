@@ -1,11 +1,12 @@
+from . import access, functional, missing, sequence
 from .base import JsonOperator, identity, pipe
-from . import access, seq, missing
 
 __all__ = [
     "JsonOperator",
-    "identity",
-    "pipe",
     "access",
-    "seq",
+    "functional",
+    "identity",
     "missing",
+    "pipe",
+    "sequence",
 ]
