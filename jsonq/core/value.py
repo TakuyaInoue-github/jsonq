@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 from dataclasses import dataclass
-from typing import TYPE_CHECKING, Final, TypeVar, cast
+from typing import TYPE_CHECKING, ClassVar, Final, TypeVar, cast
 
 from .access import get_item as _core_get_item
 from .coerce import coerce_json_element
@@ -30,7 +30,7 @@ class JsonValue:
     mode: MissingMode
     strict: bool = False
 
-    _SAME: Final = _SAME_SENTINEL
+    _SAME: ClassVar[object] = _SAME_SENTINEL
 
     def unwrap(self) -> JsonElement:
         return self.value
@@ -41,13 +41,13 @@ class JsonValue:
     def replace(
         self,
         *,
-        value: JsonElement | MissingType | object = _SAME,
-        mode: MissingMode | object = _SAME,
-        strict: bool | object = _SAME,
+        value: JsonElement | MissingType | object = _SAME_SENTINEL,
+        mode: MissingMode | object = _SAME_SENTINEL,
+        strict: bool | object = _SAME_SENTINEL,
     ) -> JsonValue:
-        new_value = self.value if value is JsonValue._SAME else cast("JsonElement", value)
-        new_mode = self.mode if mode is JsonValue._SAME else cast("MissingMode", mode)
-        new_strict = self.strict if strict is JsonValue._SAME else cast("bool", strict)
+        new_value = self.value if value is _SAME_SENTINEL else cast("JsonElement", value)
+        new_mode = self.mode if mode is _SAME_SENTINEL else cast("MissingMode", mode)
+        new_strict = self.strict if strict is _SAME_SENTINEL else cast("bool", strict)
         if new_value is self.value and new_mode is self.mode and new_strict is self.strict:
             return self
         return JsonValue(new_value, mode=new_mode, strict=new_strict)
