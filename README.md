@@ -4,10 +4,10 @@
 
 ## Highlights
 - Pythonic facade `Q()` that wraps dicts, lists, or scalars and keeps method chaining ergonomics.
-- Safe access everywhere: missing keys/indices propagate as `_Missing` instead of raising.
-- Vectorized operations (`q["key"]`, `q[0]`, `pluck`, `map`, `filter`, `sort_by`, `unique`, `flat`) automatically fan out over lists.
-- Path navigation via dotted/`[index]` expressions (`q.path("users[0].profile.email")`) plus `exists`, `coalesce`, and missing-value controls.
-- JSON diff/patch helpers for quick snapshots of top-level changes.
+- Explicit missing-value policy via `MissingMode`: drop by default, keep if you need to see sentinels, or raise when you want strictness.
+- Vectorized operations (`q["key"]`, `q[0]`, slices, `pluck`, `map`, `filter`, `reject`, `sort_by`, `unique`, `flat`) automatically fan out over lists.
+- Path navigation via dotted/`[index]` expressions (`q.path("users[0].profile.email")`) plus `exists`, `coalesce`, and fill/assert helpers for missing values.
+- JSON diff/patch helpers for shallow (top-level) change snapshots.
 - Operator modules (`jsonq.operators`) expose reusable building blocks so you can assemble pipelines beyond the built-in `Q` methods.
 
 ## Installation
@@ -23,6 +23,7 @@ Need a new dependency? Use `uv add <package>` (or `uv add --dev <package>` for d
 ## Quick Start
 ```python
 from jsonq import Q
+from jsonq.core.missing import MISSING, MissingMode
 
 users = [
     {"name": "Alice", "age": 30, "active": True},
@@ -41,6 +42,10 @@ active_names = (
 
 profile_email = Q({"users": users}).path("users[10].profile.email").get("N/A")
 
+# Missing policies: keep sentinels instead of dropping them
+kept = Q({"users": [{"name": "Alice"}, {"age": 10}]}, mode=MissingMode.KEEP)["age"].list()
+assert kept[0] is MISSING  # missing is preserved instead of dropped
+
 # Compose operators directly without Q methods
 from jsonq import operators as ops
 
@@ -53,12 +58,14 @@ op = ops.pipe(
 names = Q({"users": users}).apply(op).list()  # ['Alice', 'Cara']
 ```
 
-`ops.access`, `ops.sequence`, and `ops.missing` work with `JsonValue` directly, so advanced callers can create reusable operator chains and feed them into `Q.apply()` (or into your own wrappers) for composition-heavy workflows. Diff/patchなど生データ向けのユーティリティは `ops.functional` 配下にまとまっています。
+`ops.access`, `ops.sequence`, and `ops.missing` are JsonValue→JsonValue operators, so you can compose them with `ops.pipe(...)` and feed the pipeline to `Q.apply()` 
 
-## Working with Missing Values
-- `_Missing` is carried through the chain, letting you defer error handling.
-- Switch policies with `.keep_missing()`, `.drop_missing()`, `.fill_missing(value)`, or `.assert_present()`.
-- `coalesce("path.one", "fallback.path", default=None)` returns the first present value.
+## Missing Value Behavior
+- `mode=MissingMode.DROP` (default) drops missing keys/indices from vectorized results and treats missing scalars as empty lists.
+- `mode=MissingMode.KEEP` keeps a `<MISSING>` sentinel in-place so you can inspect gaps; use `fill_missing(x)` to replace it.
+- `mode=MissingMode.RAISE` (or `strict=True`) raises on missing access to force explicit handling.
+- Switch policies mid-pipeline with `.keep_missing()`, `.drop_missing()`, `.fill_missing(value)`, or `.assert_present()`.
+- `coalesce("path.one", "fallback.path", default=None)` returns the first present value among the provided paths.
 
 ## Diff / Patch
 ```python
@@ -73,8 +80,10 @@ ops = Q.diff({"a": 1}, {"a": 2, "b": 3})
 patched = Q.patch({"a": 1}, ops)  # {"a": 2, "b": 3}
 ```
 
+*Diff/patch notes*: the current implementation performs **shallow** diffs on top-level dict keys. When the root is not a dict, ops target the root path `/`.
+
 ## Development
-- Run tests: `uv run python -m unittest discover -s tests`
+- Run tests: `uv run pytest`
 - Lint/type-check hooks are not wired yet—see `doc/jsonq_仕様書（mvp）.md` for the full MVP spec and roadmap.
 
 ## Roadmap Snapshot
