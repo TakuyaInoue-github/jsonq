@@ -1,14 +1,26 @@
 [project]
 name = "jsonq"
 version = "0.1.0"
-description = "a jq-like JSON exploration experience tools."
+description = "A jq-like JSON exploration helper for Python."
 readme = "README.md"
 requires-python = ">=3.10"
 dependencies = []
 
+[project.optional-dependencies]
+dev = [
+    "pre-commit>=4.3.0",
+    "pyright>=1.1.407",
+    "pytest>=8.4.2",
+    "pytest-cov>=7.0.0",
+    "ruff>=0.14.3",
+]
+
 [build-system]
 requires = ["setuptools>=67"]
 build-backend = "setuptools.build_meta"
+
+[tool.setuptools]
+packages = { find = { where = ["."] , include = ["jsonq*"], exclude = ["tests*", "doc*"] } }
 
 [dependency-groups]
 dev = [
