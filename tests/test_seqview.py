@@ -1,10 +1,10 @@
 from __future__ import annotations
 
-from typing import TYPE_CHECKING
+from typing import TYPE_CHECKING, cast
 
 from jsonq.core.access import get_item
 from jsonq.core.coerce import coerce_json_element
-from jsonq.core.missing import MissingMode
+from jsonq.core.missing import MISSING, MissingMode
 from jsonq.core.seqview import _SORT_KEY_MAX_DEPTH, SeqView
 from jsonq.core.value import JsonValue
 
@@ -98,3 +98,61 @@ def test_sort_by_skips_elements_when_sort_key_depth_limit_exceeded() -> None:
     assert isinstance(out, list)
 
     assert [_get(item, "id", mode=MissingMode.DROP) for item in out] == ["shallow"]
+
+
+def test_sort_by_allows_boundary_depth_limit() -> None:
+    deep_value = _nested_list(_SORT_KEY_MAX_DEPTH)
+    seq = _make_seq(coerce_json_element([{"id": "deep", "score": deep_value}]), mode=MissingMode.DROP)
+    out = seq.sort_by(lambda item: _get(item, "score", mode=MissingMode.DROP)).unwrap()
+    assert out == [{"id": "deep", "score": deep_value}]
+
+
+def test_sort_by_keep_mode_orders_missing_first_but_stable() -> None:
+    data = [
+        {"id": "missing1"},
+        {"id": "low", "score": 1},
+        {"id": "missing2"},
+        {"id": "high", "score": 2},
+    ]
+    seq = _make_seq(data, mode=MissingMode.KEEP)
+    out = seq.sort_by(lambda item: _get(item, "score", mode=MissingMode.KEEP)).unwrap()
+    assert isinstance(out, list)
+    assert [_get_id(item) for item in out] == ["missing1", "missing2", "low", "high"]
+
+
+def test_seqview_map_and_predicate_errors_are_soft() -> None:
+    def risky(value: JsonElement) -> JsonElement:
+        x = cast("int", value)
+        if x == 0:
+            raise RuntimeError("boom")
+        return x * 2
+
+    drop_mode = SeqView(JsonValue([1, 0, 2], mode=MissingMode.DROP)).map(risky).to_value()
+    assert drop_mode.as_list() == [2, 4]
+
+    keep_mode = SeqView(JsonValue([1, 0], mode=MissingMode.KEEP)).map(risky).to_value().as_list()
+    assert keep_mode[0] == 2
+    assert JsonValue.is_missing(keep_mode[1])
+
+    def flaky_pred(_: object) -> bool:
+        raise RuntimeError("predicate failed")
+
+    seq = SeqView(JsonValue([1, 2], mode=MissingMode.DROP))
+    assert seq.filter(flaky_pred).to_value().unwrap() == []
+    assert seq.reject(flaky_pred).to_value().unwrap() == [1, 2]
+
+
+def test_unique_and_flat_with_missing_behaviors() -> None:
+    seq_keep = SeqView(JsonValue(coerce_json_element([1, 1, MISSING, MISSING]), mode=MissingMode.KEEP))
+    assert seq_keep.unique().unwrap() == [1, MISSING]
+
+    seq_drop = SeqView(JsonValue(coerce_json_element([1, 1, MISSING]), mode=MissingMode.DROP))
+    assert seq_drop.unique().unwrap() == [1]
+
+    seq_flat = SeqView(JsonValue(coerce_json_element([1, [2, MISSING], MISSING]), mode=MissingMode.DROP))
+    assert seq_flat.flat().unwrap() == [1, 2, MISSING]
+
+
+def _get_id(item: object) -> str:
+    assert isinstance(item, dict)
+    return item["id"]
