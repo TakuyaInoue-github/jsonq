@@ -1,22 +1,17 @@
 from __future__ import annotations
 
-from collections.abc import Callable
 from typing import TYPE_CHECKING
 
-from .core.access import apply_path
 from .core.missing import MISSING, MissingMode, MissingType
-from .core.path import tokenize_path
 from .core.value import JsonValue
-from .operators import JsonOperator
-from .operators import access as access_ops
-from .operators import functional as functional_ops
-from .operators import missing as missing_ops
-from .operators import sequence as sequence_ops
+from .deps import DEFAULT_OPERATOR_FUNCTIONS, JsonOperatorFunctions
 
 if TYPE_CHECKING:
     from collections.abc import Callable
 
     from .core.core_types import JsonElement
+    from .operators import JsonOperator
+    from .operators.functional import DiffOp
 
 
 class Q:
@@ -28,49 +23,51 @@ class Q:
         *,
         mode: MissingMode = MissingMode.DROP,
         strict: bool = False,
+        deps: JsonOperatorFunctions = DEFAULT_OPERATOR_FUNCTIONS,
     ) -> None:
         if isinstance(data, JsonValue):
             self._v = data
         else:
             self._v = JsonValue(data, mode=mode, strict=strict)
+        self._deps = deps
 
     def apply(self, operator: JsonOperator) -> Q:
         """Return a new Q after running the supplied JsonValue operator."""
-        return Q(operator(self._v))
+        return Q(operator(self._v), deps=self._deps)
 
     # ----- access -----
     def __getitem__(self, key: str | int | slice) -> Q:
-        return self.apply(access_ops.getitem(key))
+        return self.apply(self._deps.access.getitem(key))
 
     def pluck(self, key: str) -> Q:
         return self[key]
 
     def path(self, expr: str) -> Q:
-        return self.apply(access_ops.path(expr))
+        return self.apply(self._deps.access.path(expr))
 
     def exists(self, expr: str) -> bool:
-        toks = tuple(tokenize_path(expr))
-        v = apply_path(self._v, toks)
+        toks = self._deps.path_resolver.tokenize(expr)
+        v = self._deps.path_resolver.apply(self._v, toks)
         return not JsonValue.is_missing(v)
 
     # ----- transforms -----
     def map(self, fn: Callable[[JsonElement], JsonElement]) -> Q:
-        return self.apply(sequence_ops.map_items(fn))
+        return self.apply(self._deps.sequence.map_items(fn))
 
     def filter(self, pred: Callable[[JsonElement], bool]) -> Q:
-        return self.apply(sequence_ops.filter_items(pred))
+        return self.apply(self._deps.sequence.filter_items(pred))
 
     def reject(self, pred: Callable[[JsonElement], bool]) -> Q:
-        return self.apply(sequence_ops.reject_items(pred))
+        return self.apply(self._deps.sequence.reject_items(pred))
 
     def sort_by(self, keyfn: Callable[[JsonElement], object]) -> Q:
-        return self.apply(sequence_ops.sort_by(keyfn))
+        return self.apply(self._deps.sequence.sort_by(keyfn))
 
     def unique(self, keyfn: Callable[[JsonElement], object] | None = None) -> Q:
-        return self.apply(sequence_ops.unique(keyfn))
+        return self.apply(self._deps.sequence.unique(keyfn))
 
     def flat(self) -> Q:
-        return self.apply(sequence_ops.flat())
+        return self.apply(self._deps.sequence.flat())
 
     # ----- extraction -----
     def get(self, default: JsonElement | MissingType | None = None) -> JsonElement | MissingType | None:
@@ -85,24 +82,24 @@ class Q:
 
     # ----- serialization -----
     def to_json(self, indent: int | None = None) -> str:
-        return functional_ops.to_json(self._v.unwrap(), indent=indent)
+        return self._deps.functional.to_json(self._v.unwrap(), indent=indent)
 
     def pretty(self, indent: int = 2) -> None:
-        functional_ops.pretty(self._v.unwrap(), indent=indent)
+        self._deps.functional.pretty(self._v.unwrap(), indent=indent)
 
     # ----- missing policy -----
     def keep_missing(self) -> Q:
-        return self.apply(missing_ops.keep())
+        return self.apply(self._deps.missing.keep())
 
     def drop_missing(self) -> Q:
-        return self.apply(missing_ops.drop())
+        return self.apply(self._deps.missing.drop())
 
     def assert_present(self) -> Q:
         self._v.assert_present()
         return self
 
     def fill_missing(self, value: JsonElement | MissingType) -> Q:
-        return self.apply(missing_ops.fill(value))
+        return self.apply(self._deps.missing.fill(value))
 
     def coalesce(self, *paths: str, default: JsonElement | MissingType | None = None) -> JsonElement | MissingType | None:
         for p in paths:
@@ -113,12 +110,12 @@ class Q:
 
     # ----- diff/patch -----
     @staticmethod
-    def diff(a: JsonElement, b: JsonElement) -> list[functional_ops.DiffOp]:
-        return functional_ops.diff(a, b)
+    def diff(a: JsonElement, b: JsonElement) -> list[DiffOp]:
+        return DEFAULT_OPERATOR_FUNCTIONS.functional.diff(a, b)
 
     @staticmethod
-    def patch(a: JsonElement, ops: list[functional_ops.DiffOp]) -> JsonElement:
-        return functional_ops.patch(a, ops)
+    def patch(a: JsonElement, ops: list[DiffOp]) -> JsonElement:
+        return DEFAULT_OPERATOR_FUNCTIONS.functional.patch(a, ops)
 
 
 class Jx:
